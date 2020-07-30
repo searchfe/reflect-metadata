@@ -40,7 +40,8 @@ namespace Reflect {
     }
 
     interface Map<K, V> extends Iterable<[K, V]> {
-        size: number;
+        // size?: number;
+        getSize(): number;
         has(key: K): boolean;
         get(key: K): V;
         set(key: K, value?: V): this;
@@ -58,7 +59,8 @@ namespace Reflect {
     }
 
     interface Set<T> extends Iterable<T> {
-        size: number;
+        // size?: number;
+        getSize(): number;
         has(value: T): boolean;
         add(value: T): this;
         delete(value: T): boolean;
@@ -647,18 +649,25 @@ namespace Reflect {
     })
     (function (exporter) {
         const hasOwn = Object.prototype.hasOwnProperty;
+        const isOldIE = typeof navigator !== 'undefined' && /msie [6-8]\b/.test(navigator.userAgent.toLowerCase());
 
         // feature test for Symbol support
         const supportsSymbol = typeof Symbol === "function";
         const toPrimitiveSymbol = supportsSymbol && typeof Symbol.toPrimitive !== "undefined" ? Symbol.toPrimitive : "@@toPrimitive";
         const iteratorSymbol = supportsSymbol && typeof Symbol.iterator !== "undefined" ? Symbol.iterator : "@@iterator";
-        const supportsCreate = typeof Object.create === "function"; // feature test for Object.create support
+        let supportsCreate = typeof Object.create === "function"; // feature test for Object.create support
         const supportsProto = { __proto__: [] } instanceof Array; // feature test for __proto__ support
-        const downLevel = !supportsCreate && !supportsProto;
+        try {
+            Object.create(null);
+        } catch(e) {
+            supportsCreate = false;
+        }
+
+        const downLevel = (!supportsCreate && !supportsProto) || isOldIE;
 
         const HashMap = {
             // create an object in dictionary mode (a.k.a. "slow" mode in v8)
-            create: supportsCreate
+            create: supportsCreate && !isOldIE
                 ? <V>() => MakeDictionary(Object.create(null) as HashMap<V>)
                 : supportsProto
                     ? <V>() => MakeDictionary({ __proto__: null as any } as HashMap<V>)
@@ -674,7 +683,6 @@ namespace Reflect {
         };
 
         // Load global or shim versions of Map, Set, and WeakMap
-        const functionPrototype = Object.getPrototypeOf(Function);
         const usePolyfill = typeof process === "object" && process.env && process.env["REFLECT_METADATA_USE_MAP_POLYFILL"] === "true";
         const _Map: typeof Map = !usePolyfill && typeof Map === "function" && typeof Map.prototype.entries === "function" ? Map : CreateMapPolyfill();
         const _Set: typeof Set = !usePolyfill && typeof Set === "function" && typeof Set.prototype.entries === "function" ? Set : CreateSetPolyfill();
@@ -1186,10 +1194,16 @@ namespace Reflect {
             const metadataMap = GetOrCreateMetadataMap(target, propertyKey, /*Create*/ false);
             if (IsUndefined(metadataMap)) return false;
             if (!metadataMap.delete(metadataKey)) return false;
-            if (metadataMap.size > 0) return true;
+
+            if (typeof metadataMap.getSize === 'function' && metadataMap.getSize() > 0) return true;
+            else if (typeof metadataMap.size === 'number' && metadataMap.size > 0) return true;
+            
             const targetMetadata = Metadata.get(target);
             targetMetadata.delete(propertyKey);
-            if (targetMetadata.size > 0) return true;
+
+            if (typeof targetMetadata.getSize === 'function' && targetMetadata.getSize() > 0) return true;
+            else if (typeof targetMetadata.size === 'number' && targetMetadata.size > 0) return true;
+
             Metadata.delete(target);
             return true;
         }
@@ -1553,7 +1567,12 @@ namespace Reflect {
         // 9.1.1.1 OrdinaryGetPrototypeOf(O)
         // https://tc39.github.io/ecma262/#sec-ordinarygetprototypeof
         function OrdinaryGetPrototypeOf(O: any): any {
+            if (typeof Object.getPrototypeOf !== 'function' || isOldIE) {
+                return null;
+            }
             const proto = Object.getPrototypeOf(O);
+            const functionPrototype = Object.getPrototypeOf(Function);
+
             if (typeof O !== "function" || O === functionPrototype) return proto;
 
             // TypeScript doesn't set __proto__ in ES5, as it's non-standard.
@@ -1638,7 +1657,8 @@ namespace Reflect {
                 private _values: (V | undefined)[] = [];
                 private _cacheKey = cacheSentinel;
                 private _cacheIndex = -2;
-                get size() { return this._keys.length; }
+                // get size() { return this._keys.length; }
+                getSize(): number { return this._keys.length; }
                 has(key: K): boolean { return this._find(key, /*insert*/ false) >= 0; }
                 get(key: K): V | undefined {
                     const index = this._find(key, /*insert*/ false);
@@ -1708,7 +1728,8 @@ namespace Reflect {
         function CreateSetPolyfill(): SetConstructor {
             return class Set<T> {
                 private _map = new _Map<any, any>();
-                get size() { return this._map.size; }
+                // get size() { return this._map.size; }
+                getSize(): number { return this._map.getSize(); }
                 has(value: T): boolean { return this._map.has(value); }
                 add(value: T): Set<T> { return this._map.set(value, value), this; }
                 delete(value: T): boolean { return this._map.delete(value); }
