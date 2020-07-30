@@ -40,13 +40,22 @@ var Reflect;
         }
     })(function (exporter) {
         var hasOwn = Object.prototype.hasOwnProperty;
+        var isOldIE = typeof window.navigator !== 'undefined' && /msie [6-8]\b/.test(window.navigator.userAgent.toLowerCase());
         // feature test for Symbol support
         var supportsSymbol = typeof Symbol === "function";
         var toPrimitiveSymbol = supportsSymbol && typeof Symbol.toPrimitive !== "undefined" ? Symbol.toPrimitive : "@@toPrimitive";
         var iteratorSymbol = supportsSymbol && typeof Symbol.iterator !== "undefined" ? Symbol.iterator : "@@iterator";
         var supportsCreate = typeof Object.create === "function"; // feature test for Object.create support
         var supportsProto = { __proto__: [] } instanceof Array; // feature test for __proto__ support
-        var downLevel = !supportsCreate && !supportsProto;
+
+
+        try {
+            Object.create(null);
+        } catch(e) {
+            supportsCreate = false;
+        }
+        var downLevel = (!supportsCreate && !supportsProto) || isOldIE;
+
         var HashMap = {
             // create an object in dictionary mode (a.k.a. "slow" mode in v8)
             create: supportsCreate
@@ -62,7 +71,6 @@ var Reflect;
                 : function (map, key) { return map[key]; },
         };
         // Load global or shim versions of Map, Set, and WeakMap
-        var functionPrototype = Object.getPrototypeOf(Function);
         var usePolyfill = typeof process === "object" && process.env && process.env["REFLECT_METADATA_USE_MAP_POLYFILL"] === "true";
         var _Map = !usePolyfill && typeof Map === "function" && typeof Map.prototype.entries === "function" ? Map : CreateMapPolyfill();
         var _Set = !usePolyfill && typeof Set === "function" && typeof Set.prototype.entries === "function" ? Set : CreateSetPolyfill();
@@ -521,17 +529,25 @@ var Reflect;
             if (!IsUndefined(propertyKey))
                 propertyKey = ToPropertyKey(propertyKey);
             var metadataMap = GetOrCreateMetadataMap(target, propertyKey, /*Create*/ false);
+
             if (IsUndefined(metadataMap))
                 return false;
-            if (!metadataMap.delete(metadataKey))
+            if (!metadataMap['delete'](metadataKey))
                 return false;
-            if (metadataMap.size > 0)
+            if (typeof metadataMap.size === 'function' && metadataMap.size() > 0)
                 return true;
+            else if (typeof metadataMap.size === 'number' && metadataMap.size > 0)
+                return true;
+            
             var targetMetadata = Metadata.get(target);
-            targetMetadata.delete(propertyKey);
-            if (targetMetadata.size > 0)
+            targetMetadata['delete'](propertyKey);
+
+            if (typeof targetMetadata.size === 'function' && targetMetadata.size() > 0)
                 return true;
-            Metadata.delete(target);
+            else if (typeof targetMetadata.size === 'number' && targetMetadata.size > 0)
+                return true;
+
+            Metadata['delete'](target);
             return true;
         }
         exporter("deleteMetadata", deleteMetadata);
@@ -625,13 +641,17 @@ var Reflect;
         function OrdinaryMetadataKeys(O, P) {
             var ownKeys = OrdinaryOwnMetadataKeys(O, P);
             var parent = OrdinaryGetPrototypeOf(O);
+
             if (parent === null)
                 return ownKeys;
+
             var parentKeys = OrdinaryMetadataKeys(parent, P);
+
             if (parentKeys.length <= 0)
                 return ownKeys;
             if (ownKeys.length <= 0)
                 return parentKeys;
+
             var set = new _Set();
             var keys = [];
             for (var _i = 0, ownKeys_1 = ownKeys; _i < ownKeys_1.length; _i++) {
@@ -657,6 +677,7 @@ var Reflect;
         function OrdinaryOwnMetadataKeys(O, P) {
             var keys = [];
             var metadataMap = GetOrCreateMetadataMap(O, P, /*Create*/ false);
+
             if (IsUndefined(metadataMap))
                 return keys;
             var keysObj = metadataMap.keys();
@@ -870,7 +891,13 @@ var Reflect;
         // 9.1.1.1 OrdinaryGetPrototypeOf(O)
         // https://tc39.github.io/ecma262/#sec-ordinarygetprototypeof
         function OrdinaryGetPrototypeOf(O) {
+            if (typeof Object.getPrototypeOf !== 'function' || isOldIE) {
+                return null;
+            }
+
+            var functionPrototype = Object.getPrototypeOf(Function);
             var proto = Object.getPrototypeOf(O);
+
             if (typeof O !== "function" || O === functionPrototype)
                 return proto;
             // TypeScript doesn't set __proto__ in ES5, as it's non-standard.
@@ -926,7 +953,7 @@ var Reflect;
                     }
                     return { value: undefined, done: true };
                 };
-                MapIterator.prototype.throw = function (error) {
+                MapIterator.prototype['throw'] = function (error) {
                     if (this._index >= 0) {
                         this._index = -1;
                         this._keys = arraySentinel;
@@ -934,7 +961,7 @@ var Reflect;
                     }
                     throw error;
                 };
-                MapIterator.prototype.return = function (value) {
+                MapIterator.prototype['return'] = function (value) {
                     if (this._index >= 0) {
                         this._index = -1;
                         this._keys = arraySentinel;
@@ -951,11 +978,14 @@ var Reflect;
                     this._cacheKey = cacheSentinel;
                     this._cacheIndex = -2;
                 }
-                Object.defineProperty(Map.prototype, "size", {
-                    get: function () { return this._keys.length; },
-                    enumerable: true,
-                    configurable: true
-                });
+                /* ie 8 not support */
+                // Object.defineProperty(Map.prototype, "size", {
+                //     get: function () { return this._keys.length; },
+                //     enumerable: true,
+                //     configurable: true
+                // });
+                /* 为了兼容ie8 */
+                Map.prototype.size = function () { return this._keys.length; }
                 Map.prototype.has = function (key) { return this._find(key, /*insert*/ false) >= 0; };
                 Map.prototype.get = function (key) {
                     var index = this._find(key, /*insert*/ false);
@@ -966,7 +996,7 @@ var Reflect;
                     this._values[index] = value;
                     return this;
                 };
-                Map.prototype.delete = function (key) {
+                Map.prototype['delete'] = function (key) {
                     var index = this._find(key, /*insert*/ false);
                     if (index >= 0) {
                         var size = this._keys.length;
@@ -1024,14 +1054,16 @@ var Reflect;
                 function Set() {
                     this._map = new _Map();
                 }
-                Object.defineProperty(Set.prototype, "size", {
-                    get: function () { return this._map.size; },
-                    enumerable: true,
-                    configurable: true
-                });
+                // Object.defineProperty(Set.prototype, "size", {
+                //     get: function () { return this._map.size; },
+                //     enumerable: true,
+                //     configurable: true
+                // });
+                /* 为了兼容ie8 */
+                Set.prototype.size = function () { this._map.size; }
                 Set.prototype.has = function (value) { return this._map.has(value); };
                 Set.prototype.add = function (value) { return this._map.set(value, value), this; };
-                Set.prototype.delete = function (value) { return this._map.delete(value); };
+                Set.prototype['delete'] = function (value) { return this._map['delete'](value); };
                 Set.prototype.clear = function () { this._map.clear(); };
                 Set.prototype.keys = function () { return this._map.keys(); };
                 Set.prototype.values = function () { return this._map.values(); };
@@ -1063,7 +1095,7 @@ var Reflect;
                     table[this._key] = value;
                     return this;
                 };
-                WeakMap.prototype.delete = function (target) {
+                WeakMap.prototype['delete'] = function (target) {
                     var table = GetOrCreateWeakMapTable(target, /*create*/ false);
                     return table !== undefined ? delete table[this._key] : false;
                 };

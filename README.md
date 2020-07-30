@@ -2,10 +2,15 @@
 
 * [Detailed proposal][Metadata-Spec]
 
+## describtion
+This is a fork based on [rbuckton/reflect-metadata](https://github.com/rbuckton/reflect-metadata). The differences from `rbuckton/reflect-metadata` is `support IE8`，and to support IE8 you install need to do add `Object.defineProperty` [polyfill](https://github.com/xueran/defineProperty).
+
+Even if IE8 is supported, it can only get its own metadata, not its parent's metadata.
+
 ## Installation
 
 ```
-npm install reflect-metadata
+npm install @baidu/reflect-metadata
 ```
 
 ## Background
