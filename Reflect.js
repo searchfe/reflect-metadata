@@ -66,7 +66,7 @@ var Reflect;
                 : function (map, key) { return key in map; },
             get: downLevel
                 ? function (map, key) { return hasOwn.call(map, key) ? map[key] : undefined; }
-                : function (map, key) { return map[key]; },
+                : function (map, key) { return map[key]; }
         };
         // Load global or shim versions of Map, Set, and WeakMap
         var usePolyfill = typeof process === "object" && process.env && process.env["REFLECT_METADATA_USE_MAP_POLYFILL"] === "true";
@@ -529,19 +529,19 @@ var Reflect;
             var metadataMap = GetOrCreateMetadataMap(target, propertyKey, /*Create*/ false);
             if (IsUndefined(metadataMap))
                 return false;
-            if (!metadataMap.delete(metadataKey))
+            if (!metadataMap["delete"](metadataKey))
                 return false;
             if (typeof metadataMap.getSize === 'function' && metadataMap.getSize() > 0)
                 return true;
             else if (typeof metadataMap.size === 'number' && metadataMap.size > 0)
                 return true;
             var targetMetadata = Metadata.get(target);
-            targetMetadata.delete(propertyKey);
+            targetMetadata["delete"](propertyKey);
             if (typeof targetMetadata.getSize === 'function' && targetMetadata.getSize() > 0)
                 return true;
             else if (typeof targetMetadata.size === 'number' && targetMetadata.size > 0)
                 return true;
-            Metadata.delete(target);
+            Metadata["delete"](target);
             return true;
         }
         exporter("deleteMetadata", deleteMetadata);
@@ -940,7 +940,7 @@ var Reflect;
                     }
                     return { value: undefined, done: true };
                 };
-                MapIterator.prototype.throw = function (error) {
+                MapIterator.prototype["throw"] = function (error) {
                     if (this._index >= 0) {
                         this._index = -1;
                         this._keys = arraySentinel;
@@ -948,7 +948,7 @@ var Reflect;
                     }
                     throw error;
                 };
-                MapIterator.prototype.return = function (value) {
+                MapIterator.prototype["return"] = function (value) {
                     if (this._index >= 0) {
                         this._index = -1;
                         this._keys = arraySentinel;
@@ -977,7 +977,7 @@ var Reflect;
                     this._values[index] = value;
                     return this;
                 };
-                Map.prototype.delete = function (key) {
+                Map.prototype["delete"] = function (key) {
                     var index = this._find(key, /*insert*/ false);
                     if (index >= 0) {
                         var size = this._keys.length;
@@ -1039,7 +1039,7 @@ var Reflect;
                 Set.prototype.getSize = function () { return this._map.getSize(); };
                 Set.prototype.has = function (value) { return this._map.has(value); };
                 Set.prototype.add = function (value) { return this._map.set(value, value), this; };
-                Set.prototype.delete = function (value) { return this._map.delete(value); };
+                Set.prototype["delete"] = function (value) { return this._map["delete"](value); };
                 Set.prototype.clear = function () { this._map.clear(); };
                 Set.prototype.keys = function () { return this._map.keys(); };
                 Set.prototype.values = function () { return this._map.values(); };
@@ -1071,7 +1071,7 @@ var Reflect;
                     table[this._key] = value;
                     return this;
                 };
-                WeakMap.prototype.delete = function (target) {
+                WeakMap.prototype["delete"] = function (target) {
                     var table = GetOrCreateWeakMapTable(target, /*create*/ false);
                     return table !== undefined ? delete table[this._key] : false;
                 };
@@ -1137,3 +1137,4 @@ var Reflect;
         }
     });
 })(Reflect || (Reflect = {}));
+//# sourceMappingURL=Reflect.js.map
