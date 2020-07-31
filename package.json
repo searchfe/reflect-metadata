@@ -1,6 +1,6 @@
 {
-  "name": "@baidu/reflect-metadata",
-  "version": "0.1.14",
+  "name": "@searchfe/reflect-metadata",
+  "version": "0.1.13",
   "description": "Polyfill for Metadata Reflection API",
   "main": "Reflect.js",
   "types": "index.d.ts",
@@ -15,7 +15,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/rbuckton/reflect-metadata.git"
+    "url": "https://github.com/searchfe/reflect-metadata.git"
   },
   "keywords": [
     "decorator",
@@ -24,13 +24,12 @@
     "reflect"
   ],
   "author": {
-    "name": "Ron Buckton",
-    "email": "ron.buckton@microsoft.com",
-    "url": "http://github.com/rbuckton"
+    "name": "yuanxueran",
+    "email": "yuanxueran@gmail.com"
   },
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/rbuckton/reflect-metadata/issues"
+    "url": "https://github.com/searchfe/reflect-metadata/issues"
   },
   "homepage": "http://rbuckton.github.io/reflect-metadata",
   "dependencies": {},
